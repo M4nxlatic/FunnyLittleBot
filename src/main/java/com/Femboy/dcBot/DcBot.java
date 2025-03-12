@@ -10,19 +10,22 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.io.*;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public final class DcBot extends JavaPlugin {
 
     private JDABuilder builder;
     private JDA jda;
+    private static List<String> memory = new ArrayList<>();
 
     @Override
     public void onEnable() {
 
         ConversationManager.initializeDatabase();
-        OllamaAI.loadMemory();
+        ConversationManager.loadMemory();
 
         // Get the data folder for your plugin
         File dataFolder = getDataFolder();
@@ -102,6 +105,13 @@ public final class DcBot extends JavaPlugin {
 
 
     }
+
+    public static List<String> getMemory() {
+        return memory;
+    }
+
+
+
 
     @Override
     public void onDisable() {

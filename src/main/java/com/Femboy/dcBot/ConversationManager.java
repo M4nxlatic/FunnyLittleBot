@@ -9,6 +9,8 @@ public class ConversationManager {
     private static final String DB_PATH = "conversation_history.db"; // Database file name
     private static final String DB_URL = "jdbc:sqlite:" + DB_PATH; // SQLite database URL
 
+    private static List<String> memory = DcBot.getMemory();
+
     // Executor to run asynchronous tasks
     private static final ExecutorService executor = Executors.newSingleThreadExecutor();
 
@@ -52,63 +54,22 @@ public class ConversationManager {
         }
     }
 
-    // Asynchronously load past conversations from the database and return them as a List of Conversation objects
-    public static void loadConversationsAsync(ConversationCallback callback) {
-        executor.submit(() -> {
-            List<Conversation> conversations = new ArrayList<>();
-            try (Connection conn = DriverManager.getConnection(DB_URL)) {
-                String sql = "SELECT * FROM conversations ORDER BY timestamp DESC";
-                try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(sql)) {
-                    while (rs.next()) {
-                        String userMessage = rs.getString("userMessage");
-                        String botResponse = rs.getString("botResponse");
-                        long timestamp = rs.getLong("timestamp");
-                        conversations.add(new Conversation(userMessage, botResponse, timestamp));
-                    }
+    public static void loadMemory() {
+        memory.clear();
+        try (Connection conn = DriverManager.getConnection(DB_URL)) {
+            String sql = "SELECT * FROM conversations ORDER BY timestamp DESC LIMIT 5"; // Keep last 5
+            try (Statement stmt = conn.createStatement(); ResultSet rs = stmt.executeQuery(sql)) {
+                while (rs.next()) {
+                    String userMessage = rs.getString("userMessage");
+                    String botResponse = rs.getString("botResponse");
+                    DcBot.getMemory().add("User: " + userMessage + "\nBot: " + botResponse);
                 }
-            } catch (SQLException e) {
-                e.printStackTrace();
             }
-
-            // Once loading is complete, trigger the callback with the conversations
-            callback.onConversationsLoaded(conversations);
-        });
-    }
-
-    // Conversation class to hold individual conversation entries
-    public static class Conversation {
-        private String userMessage;
-        private String botResponse;
-        private long timestamp;
-
-        public Conversation(String userMessage, String botResponse, long timestamp) {
-            this.userMessage = userMessage;
-            this.botResponse = botResponse;
-            this.timestamp = timestamp;
-        }
-
-        public String getUserMessage() {
-            return userMessage;
-        }
-
-        public String getBotResponse() {
-            return botResponse;
-        }
-
-        public long getTimestamp() {
-            return timestamp;
-        }
-
-        @Override
-        public String toString() {
-            return "User: " + userMessage + "\nBot: " + botResponse + "\nTimestamp: " + timestamp;
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
     }
 
-    // Callback interface to handle loaded conversations asynchronously
-    public interface ConversationCallback {
-        void onConversationsLoaded(List<Conversation> conversations);
-    }
 }
 
 
